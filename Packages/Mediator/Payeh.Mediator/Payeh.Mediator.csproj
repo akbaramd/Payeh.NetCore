@@ -12,6 +12,7 @@
     </ItemGroup>
 
     <ItemGroup>
+      <ProjectReference Include="..\..\Core\Payeh.Core\Payeh.Core.csproj" />
       <ProjectReference Include="..\Payeh.Mediator.Abstractions\Payeh.Mediator.Abstractions.csproj" />
     </ItemGroup>
 

@@ -3,13 +3,13 @@ using Xunit;
 
 namespace Payeh.Result.Tests
 {
-    public class ResultTests
+    public class PayehResultTests
     {
         [Fact]
         public void Result_Success_ShouldHaveIsSuccessTrue()
         {
             // Arrange & Act
-            var result = Result.Success();
+            var result = PayehResult.Success();
 
             // Assert
             result.IsSuccess.Should().BeTrue();
@@ -24,7 +24,7 @@ namespace Payeh.Result.Tests
             var errorMessage = "An error occurred";
 
             // Act
-            var result = Result.Failure(errorMessage);
+            var result = PayehResult.Failure(errorMessage);
 
             // Assert
             result.IsSuccess.Should().BeFalse();
@@ -39,7 +39,7 @@ namespace Payeh.Result.Tests
             var data = 42;
 
             // Act
-            var result = Result<int>.Success(data);
+            var result = PayehResult<int>.Success(data);
 
             // Assert
             result.IsSuccess.Should().BeTrue();
@@ -55,7 +55,7 @@ namespace Payeh.Result.Tests
             var errorMessage = "Invalid data";
 
             // Act
-            var result = Result<int>.Failure(errorMessage);
+            var result = PayehResult<int>.Failure(errorMessage);
 
             // Assert
             result.IsSuccess.Should().BeFalse();
@@ -68,54 +68,54 @@ namespace Payeh.Result.Tests
         public void ImplicitConversion_ResultToResultT_ShouldConvertSuccessfully()
         {
             // Arrange
-            var result = Result.Failure("An error occurred");
+            var result = PayehResult.Failure("An error occurred");
 
             // Act
-            Result<int> genericResult = result;
+            PayehResult<int> genericPayehResult = result;
             // Assert
-            genericResult.IsSuccess.Should().BeFalse();
-            genericResult.ErrorMessage.Should().Be(result.ErrorMessage);
-            genericResult.Data.Should().Be(default);
+            genericPayehResult.IsSuccess.Should().BeFalse();
+            genericPayehResult.ErrorMessage.Should().Be(result.ErrorMessage);
+            genericPayehResult.Data.Should().Be(default);
         }
 
         [Fact]
         public void ImplicitConversion_ResultTToResult_ShouldConvertSuccessfully()
         {
             // Arrange
-            var genericResult = Result<int>.Success(100);
+            var genericResult = PayehResult<int>.Success(100);
 
             // Act
-            Result result = genericResult;
+            PayehResult payehResult = genericResult;
 
             // Assert
-            result.IsSuccess.Should().BeTrue();
-            result.ErrorMessage.Should().BeNull();
+            payehResult.IsSuccess.Should().BeTrue();
+            payehResult.ErrorMessage.Should().BeNull();
         }
 
         [Fact]
         public void Result_WithNullImplicitConversion_ShouldReturnNull()
         {
             // Arrange
-            Result nullResult = null;
+            PayehResult nullPayehResult = null;
 
             // Act
-            Result<int> genericResult = nullResult;
+            PayehResult<int> genericPayehResult = nullPayehResult;
 
             // Assert
-            genericResult.Should().BeNull();
+            genericPayehResult.Should().BeNull();
         }
 
         [Fact]
         public void ResultT_WithNullImplicitConversion_ShouldReturnNull()
         {
             // Arrange
-            Result<int> nullGenericResult = null;
+            PayehResult<int> nullGenericPayehResult = null;
 
             // Act
-            Result result = nullGenericResult;
+            PayehResult payehResult = nullGenericPayehResult;
 
             // Assert
-            result.Should().BeNull();
+            payehResult.Should().BeNull();
         }
     }
 }

@@ -1,4 +1,5 @@
 ﻿using FluentValidation;
+using Microsoft.Extensions.Logging;
 
 namespace Payeh.Mediator.Pipeline
 {
@@ -13,7 +14,7 @@ namespace Payeh.Mediator.Pipeline
         private readonly ILogger<ValidationBehavior<TRequest, TResponse>> _logger;
         private readonly IValidator<TRequest> _validator;
 
-        public ValidationBehavior(ILogger<ValidationBehavior<TRequest, TResponse>> logger, IValidator<TRequest> validator = null)
+        public ValidationBehavior(ILogger<ValidationBehavior<TRequest, TResponse>> logger, IValidator<TRequest> validator)
         {
             _logger = logger;
             _validator = validator;
@@ -21,6 +22,7 @@ namespace Payeh.Mediator.Pipeline
 
         public async Task<TResponse> Handle(TRequest request, CancellationToken cancellationToken, Func<TRequest, CancellationToken, Task<TResponse>> next)
         {
+            // Validate using the provided validator
             if (_validator != null)
             {
                 var validationResult = await _validator.ValidateAsync(request, cancellationToken);
@@ -31,6 +33,7 @@ namespace Payeh.Mediator.Pipeline
                 }
             }
 
+            // Proceed to the next handler
             return await next(request, cancellationToken);
         }
     }
@@ -45,7 +48,7 @@ namespace Payeh.Mediator.Pipeline
         private readonly ILogger<ValidationEventBehavior<TEvent>> _logger;
         private readonly IValidator<TEvent> _validator;
 
-        public ValidationEventBehavior(ILogger<ValidationEventBehavior<TEvent>> logger, IValidator<TEvent> validator = null)
+        public ValidationEventBehavior(ILogger<ValidationEventBehavior<TEvent>> logger, IValidator<TEvent> validator)
         {
             _logger = logger;
             _validator = validator;
@@ -53,6 +56,7 @@ namespace Payeh.Mediator.Pipeline
 
         public async Task Handle(TEvent @event, CancellationToken cancellationToken, Func<TEvent, CancellationToken, Task> next)
         {
+            // Validate using the provided validator
             if (_validator != null)
             {
                 var validationResult = await _validator.ValidateAsync(@event, cancellationToken);
@@ -63,6 +67,7 @@ namespace Payeh.Mediator.Pipeline
                 }
             }
 
+            // Proceed to the next handler
             await next(@event, cancellationToken);
         }
     }

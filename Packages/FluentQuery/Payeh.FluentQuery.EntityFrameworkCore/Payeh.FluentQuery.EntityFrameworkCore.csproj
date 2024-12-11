@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
         <TargetFramework>net8.0</TargetFramework>
@@ -11,16 +11,15 @@
         <PackageProjectUrl>https://akbaramd.github.io/Payeh.NetCore</PackageProjectUrl>
         <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
         <RepositoryUrl>https://github.com/akbaramd/Payeh.NetCore</RepositoryUrl>
-        <PackageId>Payeh.Result</PackageId>
-        <OutputType>library</OutputType>
+        <PackageId>Payeh.FluentQuery.EntityFrameworkCore</PackageId>
     </PropertyGroup>
 
     <ItemGroup>
-      <PackageReference Include="FluentValidation" Version="11.11.0" />
+      <PackageReference Include="Microsoft.EntityFrameworkCore" Version="8.0.11" />
     </ItemGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\..\Core\Payeh.Core\Payeh.Core.csproj" />
+      <ProjectReference Include="..\Payeh.FluentQuery\Payeh.FluentQuery.csproj" />
     </ItemGroup>
 
 </Project>

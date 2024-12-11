@@ -1,10 +1,7 @@
-﻿using Microsoft.Extensions.DependencyInjection;
-using Payeh.Mediator;
-using Payeh.Mediator.Abstractions;
-using Payeh.Mediator.Memento;
-using Payeh.Mediator.Pipeline;
-using System.Reflection;
-using Payeh.Mediator.Abstractions.Memento;
+﻿using System.Reflection;
+using Microsoft.Extensions.DependencyInjection;
+
+namespace Payeh.Mediator.Tests;
 
 public class MediatorTestSetup
 {

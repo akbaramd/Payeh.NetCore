@@ -1,7 +1,8 @@
 using Microsoft.Extensions.DependencyInjection;
 using Payeh.Mediator.Abstractions;
 using Payeh.Mediator.Tests.Models;
-using Xunit;
+
+namespace Payeh.Mediator.Tests;
 
 public class MediatorTests : IClassFixture<MediatorTestSetup>
 {

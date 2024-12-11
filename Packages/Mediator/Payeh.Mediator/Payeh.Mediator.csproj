@@ -4,12 +4,15 @@
         <TargetFramework>net8.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
+        <IsPackable>true</IsPackable>
+        <Version>1.0.0</Version>
+        <Authors>Akbar Ahmadi Saray</Authors>
+        <Company>akbar-ahmadi.ir</Company>
+        <PackageProjectUrl>https://akbaramd.github.io/Payeh.NetCore</PackageProjectUrl>
+        <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+        <RepositoryUrl>https://github.com/akbaramd/Payeh.NetCore</RepositoryUrl>
+        <PackageId>Payeh.Mediator</PackageId>
     </PropertyGroup>
-
-    <ItemGroup>
-      <Folder Include="Dependencies\" />
-      <Folder Include="Errors\" />
-    </ItemGroup>
 
     <ItemGroup>
       <ProjectReference Include="..\..\Core\Payeh.Core\Payeh.Core.csproj" />

@@ -2,7 +2,8 @@
 using Payeh.Mediator.Abstractions;
 using Payeh.Mediator.Abstractions.Memento;
 using Payeh.Mediator.Tests.Models;
-using Xunit;
+
+namespace Payeh.Mediator.Tests;
 
 public class MementoTests : IClassFixture<MediatorTestSetup>
 {

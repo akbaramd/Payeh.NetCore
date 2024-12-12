@@ -20,7 +20,7 @@ public static class UnitOfWorkExtensions
         services.AddDbContext<TContext>();
 
         // Register the Unit of Work
-        services.AddScoped<IUnitOfWork, EntityFrameworkUnitOfWork<TContext>>();
+        services.AddTransient<IUnitOfWork, EntityFrameworkUnitOfWork<TContext>>();
 
         return services;
     }

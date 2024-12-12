@@ -1,121 +1,208 @@
-﻿using System.Reflection;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Metadata.Builders;
+﻿using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Payeh.SharedKernel.Domain;
+using Payeh.SharedKernel.Domain.Enumerations;
 using Payeh.SharedKernel.Domain.ValueObjects;
+using System;
+using System.Linq;
+using Payeh.SharedKernel.EntityFrameworkCore.Domain;
 
-namespace Payeh.SharedKernel.EntityFrameworkCore.Domain;
-
-/// <summary>
-/// Provides extension methods to configure Entity Framework models for ValueObjects, BusinessIds, and AggregateRoots.
-/// </summary>
-public static class DomainModelBuilderExtensions
+namespace Microsoft.EntityFrameworkCore
 {
-    /// <summary>
-    /// Configures all models to support ValueObjects, BusinessIds, and AggregateRoots.
-    /// </summary>
-    /// <param name="modelBuilder">The EF Core ModelBuilder instance.</param>
-    public static void ConfigureDomain(this ModelBuilder modelBuilder)
+    public static class EntityTypeBuilderExtensions
     {
-        var types = modelBuilder.Model.GetEntityTypes();
-
-       
-        Console.WriteLine("Configuring models for ValueObjects, BusinessIds, and AggregateRoots...");
-        modelBuilder.ConfigureValueObjects();
-        modelBuilder.ConfigureBusinessIds();
-        modelBuilder.ConfigureAggregateRoots();
-        Console.WriteLine("Model configuration completed.");
-    }
-
-    /// <summary>
-    /// Configures all ValueObject properties for the given model, including nested ValueObjects.
-    /// </summary>
-    /// <param name="modelBuilder">The EF Core ModelBuilder instance.</param>
-    public static void ConfigureValueObjects(this ModelBuilder modelBuilder)
-    {
-        Console.WriteLine("Configuring ValueObjects...");
-        foreach (var entityType in modelBuilder.Model.GetEntityTypes())
+        public static EntityTypeBuilder DomainConfiguration(this EntityTypeBuilder b)
         {
-            ConfigureValueObjectProperties(modelBuilder, entityType.ClrType);
+            Console.WriteLine($"Configuring entity: {b.Metadata.ClrType.Name}");
+
+            b.ConfigureBusinessIdProperties();
+            b.ConfigureEnumerationProperties();
+            b.IgnoreDomainEventProperties();
+
+            Console.WriteLine($"Configuration completed for entity: {b.Metadata.ClrType.Name}");
+            return b;
         }
-        Console.WriteLine("ValueObject configuration completed.");
-    }
 
-    private static void ConfigureValueObjectProperties(ModelBuilder modelBuilder, Type entityType)
-    {
-        foreach (var property in entityType.GetProperties(BindingFlags.Public | BindingFlags.Instance))
+        private static void IgnoreDomainEventProperties(this EntityTypeBuilder b)
         {
-            if (typeof(ValueObject).IsAssignableFrom(property.PropertyType))
+            var entityType = b.Metadata.ClrType;
+            if (entityType.IsAssignableTo(typeof(AggregateRoot)))
             {
-                Console.WriteLine($"Configuring ValueObject property '{property.Name}' on entity '{entityType.Name}'...");
-                modelBuilder.Entity(entityType)
-                    .OwnsOne(property.PropertyType, property.Name, navigationBuilder =>
-                    {
-                        Console.WriteLine($"Mapping ValueObject property '{property.Name}'...");
-                        ConfigureValueObject(property.Name, navigationBuilder);
-                    });
-            }
-            else if (property.PropertyType.IsClass && property.PropertyType != typeof(string))
-            {
-                Console.WriteLine($"Checking nested properties for potential ValueObjects in '{property.Name}'...");
-                ConfigureValueObjectProperties(modelBuilder, property.PropertyType);
+                Console.WriteLine($"Ignoring 'DomainEvents' property for AggregateRoot: {entityType.Name}");
+                b.Ignore(nameof(AggregateRoot.DomainEvents));
             }
         }
-    }
 
-    /// <summary>
-    /// Configures all BusinessId properties for the given model.
-    /// </summary>
-    /// <param name="modelBuilder">The EF Core ModelBuilder instance.</param>
-    public static void ConfigureBusinessIds(this ModelBuilder modelBuilder)
-    {
-        Console.WriteLine("Configuring BusinessIds...");
-        foreach (var entityType in modelBuilder.Model.GetEntityTypes())
+        public static EntityTypeBuilder ConfigureEnumerationProperties(this EntityTypeBuilder builder)
         {
-            foreach (var property in entityType.ClrType.GetProperties())
+            var entityType = builder.Metadata.ClrType;
+            Console.WriteLine($"Configuring Enumeration properties for entity: {entityType.Name}");
+
+            var enumerationProperties = entityType
+                .GetProperties()
+                .Where(property => IsEnumerationType(property.PropertyType))
+                .ToList();
+
+            foreach (var property in enumerationProperties)
             {
-                if (property.PropertyType.IsGenericType &&
-                    property.PropertyType.GetGenericTypeDefinition() == typeof(BusinessId<,>))
+                try
                 {
-                    Console.WriteLine($"Configuring BusinessId property '{property.Name}' on entity '{entityType.ClrType.Name}'...");
-                    modelBuilder.Entity(entityType.ClrType)
-                        .Property(property.Name)
-                        .HasColumnName(property.Name + "Id");
+                    Console.WriteLine($"Configuring Enumeration property: {property.Name}");
+
+                    var propertyType = property.PropertyType;
+                    var isNullable = IsNullableEnumerationType(propertyType);
+                    var underlyingType = isNullable ? Nullable.GetUnderlyingType(propertyType) : propertyType;
+
+                    if (underlyingType == null) continue;
+
+                    builder.OwnsOne(propertyType, property.Name, c =>
+                    {
+                        c.Property<int>("Id") // Map the `Id` property
+                            .HasColumnName($"{property.Name}Id")
+                            .IsRequired(!isNullable);
+
+                        c.Property<string>("Name") // Map the `Name` property
+                            .HasColumnName($"{property.Name}Name")
+                            .IsRequired(!isNullable);
+                    });
+
+                    Console.WriteLine($"Enumeration property '{property.Name}' configured successfully.");
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Error configuring Enumeration property '{property.Name}': {ex.Message}");
                 }
             }
-        }
-        Console.WriteLine("BusinessId configuration completed.");
-    }
 
-    /// <summary>
-    /// Configures AggregateRoot entities to ensure DomainEvents are not persisted.
-    /// </summary>
-    /// <param name="modelBuilder">The EF Core ModelBuilder instance.</param>
-    public static void ConfigureAggregateRoots(this ModelBuilder modelBuilder)
-    {
-        Console.WriteLine("Configuring AggregateRoots...");
-        foreach (var entityType in modelBuilder.Model.GetEntityTypes())
+            return builder;
+        }
+
+        public static EntityTypeBuilder ConfigureBusinessIdProperties(this EntityTypeBuilder builder)
         {
-            if (typeof(AggregateRoot).IsAssignableFrom(entityType.ClrType))
-            {
-                Console.WriteLine($"Configuring AggregateRoot '{entityType.ClrType.Name}'...");
-                modelBuilder.Entity(entityType.ClrType)
-                    .Ignore("DomainEvents");
-            }
-        }
-        Console.WriteLine("AggregateRoot configuration completed.");
-    }
+            var entityType = builder.Metadata.ClrType;
+            Console.WriteLine($"Configuring BusinessId properties for entity: {entityType.Name}");
 
-    /// <summary>
-    /// Configures a ValueObject property to use a single table column for serialization.
-    /// </summary>
-    /// <param name="propertyName">The name of the property being configured.</param>
-    /// <param name="navigationBuilder">The builder for the ValueObject navigation.</param>
-    private static void ConfigureValueObject(string propertyName, OwnedNavigationBuilder navigationBuilder)
-    {
-        Console.WriteLine($"Configuring column mapping for ValueObject property '{propertyName}'...");
-        navigationBuilder.Property("Value")
-            .HasColumnName(propertyName + "Value");
-        Console.WriteLine($"Column mapping completed for ValueObject property '{propertyName}'.");
+            var businessIdProperties = entityType
+                .GetProperties()
+                .Where(property => IsBusinessIdType(property.PropertyType))
+                .ToList();
+
+            foreach (var property in businessIdProperties)
+            {
+                try
+                {
+                    Console.WriteLine($"Configuring BusinessId property: {property.Name}");
+                    var propertyType = property.PropertyType;
+
+                    if (IsGenericBonBusinessIdWithKey(propertyType))
+                    {
+                        var keyType = GetKeyType(propertyType);
+
+                        var converterType =
+                            typeof(BusinessIdConverter<,>).MakeGenericType(propertyType, keyType);
+                        if (Activator.CreateInstance(converterType) is ValueConverter converterInstance)
+                        {
+                            builder.Property(property.Name)
+                                .HasConversion(converterInstance)
+                                .HasColumnName(property.Name);
+                        }
+                    }
+                    else if (IsGenericBonBusinessId(propertyType))
+                    {
+                        var converterType = typeof(BusinessIdConverter<>).MakeGenericType(propertyType);
+                        if (Activator.CreateInstance(converterType) is ValueConverter converterInstance)
+                        {
+                            builder.Property(property.Name)
+                                .HasConversion(converterInstance)
+                                .HasColumnName(property.Name);
+                        }
+                    }
+
+                    Console.WriteLine($"BusinessId property '{property.Name}' configured successfully.");
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Error configuring BusinessId property '{property.Name}': {ex.Message}");
+                }
+            }
+
+            return builder;
+        }
+
+        private static bool IsGenericBonBusinessIdWithKey(Type type)
+        {
+            while (type != null)
+            {
+                if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(BusinessId<,>))
+                {
+                    return true;
+                }
+
+                type = type.BaseType;
+            }
+
+            return false;
+        }
+
+        private static bool IsGenericBonBusinessId(Type type)
+        {
+            while (type != null)
+            {
+                if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(BusinessId<>))
+                {
+                    return true;
+                }
+
+                type = type.BaseType;
+            }
+
+            return false;
+        }
+
+        private static Type GetKeyType(Type type)
+        {
+            while (type != null)
+            {
+                if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(BusinessId<,>))
+                {
+                    return type.GetGenericArguments()[1];
+                }
+
+                type = type.BaseType;
+            }
+
+            throw new InvalidOperationException($"Type '{type.Name}' is not a valid BusinessId with a key.");
+        }
+
+        private static bool IsBusinessIdType(Type type)
+        {
+            if (type == null) return false;
+
+            if (IsGenericBonBusinessId(type) || IsGenericBonBusinessIdWithKey(type))
+                return true;
+
+            var baseType = type.BaseType;
+            while (baseType != null)
+            {
+                if (IsGenericBonBusinessId(baseType) || IsGenericBonBusinessIdWithKey(baseType))
+                    return true;
+
+                baseType = baseType.BaseType;
+            }
+
+            return false;
+        }
+
+        private static bool IsEnumerationType(Type type)
+        {
+            return type != null && type.IsSubclassOf(typeof(Enumeration));
+        }
+
+        private static bool IsNullableEnumerationType(Type type)
+        {
+            return type.IsGenericType &&
+                   type.GetGenericTypeDefinition() == typeof(Nullable<>) &&
+                   type.GetGenericArguments()[0].IsSubclassOf(typeof(Enumeration));
+        }
     }
 }
